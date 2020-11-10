@@ -1,15 +1,18 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class Rocket : MonoBehaviour
 {
     Rigidbody rigidbody;
-    float thrust = 10;
+    public float thrust = 10;
     AudioSource m_MyAudioSource;
     bool fuel = false;
     bool moveRight = false;
     bool moveLeft = false;
+    enum State { Alive, Dying, Transcending }
+    State state = State.Alive;
     // Start is called before the first frame update
     void Start()
     {
@@ -21,7 +24,37 @@ public class Rocket : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        ProcessInput();
+        if (state == State.Alive)
+        {
+            ProcessInput();
+        }
+    }
+    private void LoadNextLevel()
+    {
+        SceneManager.LoadScene(1);
+    }
+    private void LoadFirstLevel()
+    {
+        SceneManager.LoadScene(0);
+    }
+    private void OnCollisionEnter(Collision collision)
+
+    {
+        if (state != State.Alive) { return; }
+        if (collision.gameObject.tag == "Finish")
+        {
+            state = State.Transcending;
+            Invoke("LoadNextLevel", 1f);
+        }
+        else if(collision.gameObject.tag == "friendly")
+        {
+            
+        }
+        else
+        {
+            state = State.Dying;
+            Invoke("LoadFirstLevel", 1f);
+        }
     }
     private void FixedUpdate()
     {
@@ -30,15 +63,18 @@ public class Rocket : MonoBehaviour
             rigidbody.AddRelativeForce(Vector3.up * thrust);
 
         }
+        rigidbody.freezeRotation = true;
         if (moveRight)
         {
-            transform.Rotate(-Vector3.forward * Time.deltaTime * 100);
+            transform.Rotate(-Vector3.forward * Time.fixedDeltaTime * 30);
         }
         if (moveLeft)
         {
-            transform.Rotate(Vector3.forward * Time.deltaTime * 100);
+            transform.Rotate(Vector3.forward * Time.fixedDeltaTime * 30);
 
         }
+        rigidbody.freezeRotation = false;
+
     }
     private void ProcessInput()
     {
