@@ -7,23 +7,35 @@ public class Rocket : MonoBehaviour
 {
     Rigidbody rigidbody;
     public float thrust = 10;
-    AudioSource m_MyAudioSource;
+    
     bool fuel = false;
     bool moveRight = false;
     bool moveLeft = false;
+    public AudioClip mainEngine;
+    public AudioClip death;
+    public AudioClip sucess;
+    public ParticleSystem mainEngineParticle;
+    public ParticleSystem deathParticle;
+    public ParticleSystem sucessParticle;
+    public float levelLoadDelay = 1f;
+    public Vector3 RocketPosition;
     enum State { Alive, Dying, Transcending }
     State state = State.Alive;
+    AudioSource audioSource;
     // Start is called before the first frame update
     void Start()
     {
         rigidbody = GetComponent<Rigidbody>();
-        m_MyAudioSource = GetComponent<AudioSource>();
+        audioSource = GetComponent<AudioSource>();
+        RocketPosition = transform.position;
+
 
     }
 
     // Update is called once per frame
     void Update()
     {
+        RocketPosition = transform.position;
         if (state == State.Alive)
         {
             ProcessInput();
@@ -31,11 +43,20 @@ public class Rocket : MonoBehaviour
     }
     private void LoadNextLevel()
     {
-        SceneManager.LoadScene(1);
+        if (SceneManager.sceneCountInBuildSettings > SceneManager.GetActiveScene().buildIndex + 1)
+        {
+
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
+        }
+        else
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
     }
     private void LoadFirstLevel()
     {
         SceneManager.LoadScene(0);
+
     }
     private void OnCollisionEnter(Collision collision)
 
@@ -44,7 +65,10 @@ public class Rocket : MonoBehaviour
         if (collision.gameObject.tag == "Finish")
         {
             state = State.Transcending;
-            Invoke("LoadNextLevel", 1f);
+            audioSource.Stop();
+            sucessParticle.Play();
+            audioSource.PlayOneShot(sucess);
+            Invoke("LoadNextLevel", levelLoadDelay);
         }
         else if(collision.gameObject.tag == "friendly")
         {
@@ -53,7 +77,11 @@ public class Rocket : MonoBehaviour
         else
         {
             state = State.Dying;
-            Invoke("LoadFirstLevel", 1f);
+            audioSource.Stop();
+            audioSource.PlayOneShot(death);
+            deathParticle.Play();
+            
+            Invoke("LoadFirstLevel", levelLoadDelay);
         }
     }
     private void FixedUpdate()
@@ -81,15 +109,20 @@ public class Rocket : MonoBehaviour
         if (Input.GetKey(KeyCode.Space))
         {
             fuel = true;
-            if ( m_MyAudioSource.isPlaying == false)
+            if ( audioSource.isPlaying == false)
             {
-                m_MyAudioSource.Play();
+                audioSource.PlayOneShot(mainEngine);
+            }
+            if(mainEngineParticle.isStopped)
+            {
+                mainEngineParticle.Play();
             }
         }
         else
         {
             fuel = false;
-            m_MyAudioSource.Stop();
+            audioSource.Stop();
+            mainEngineParticle.Stop();
         }
         if(Input.GetKey(KeyCode.A))
         {
